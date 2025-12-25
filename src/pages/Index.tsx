@@ -1,16 +1,29 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import Icon from '@/components/ui/icon';
 import { Link } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
+  const { toast } = useToast();
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [preorderCount, setPreorderCount] = useState(0);
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
     minutes: 0,
     seconds: 0,
   });
+
+  useEffect(() => {
+    fetch('https://functions.poehali.dev/4c484d57-c85a-4b09-b7c7-80339285a823')
+      .then(res => res.json())
+      .then(data => setPreorderCount(data.count))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const targetDate = new Date('2026-01-01T00:00:00').getTime();
@@ -55,6 +68,47 @@ const Index = () => {
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     element?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handlePreorder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('https://functions.poehali.dev/4c484d57-c85a-4b09-b7c7-80339285a823', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: '🎉 Успешно!',
+          description: 'Мы уведомим вас о запуске Surfium',
+        });
+        setEmail('');
+        setPreorderCount(data.total_count);
+      } else if (response.status === 409) {
+        toast({
+          title: 'Уже зарегистрирован',
+          description: 'Этот email уже в списке ожидания',
+          variant: 'destructive',
+        });
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: 'Попробуйте позже',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -119,11 +173,39 @@ const Index = () => {
             </div>
           </div>
 
+          <Card className="max-w-2xl mx-auto p-8 bg-card border-2 border-primary/50 mb-8">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/20 rounded-full mb-4">
+                <Icon name="Users" className="text-primary" size={20} />
+                <span className="text-primary font-semibold">
+                  {preorderCount} человек уже в списке ожидания
+                </span>
+              </div>
+              <h3 className="text-2xl font-bold mb-2">Получите Surfium первым! 🎁</h3>
+              <p className="text-muted-foreground">Введите email и получите уведомление о запуске</p>
+            </div>
+            <form onSubmit={handlePreorder} className="flex flex-col md:flex-row gap-4">
+              <Input
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1 bg-background border-2 border-primary/30 focus:border-primary text-lg px-6 py-6"
+                required
+              />
+              <Button
+                type="submit"
+                size="lg"
+                disabled={isSubmitting}
+                className="bg-primary hover:bg-primary/90 text-background font-semibold text-lg px-8 py-6 whitespace-nowrap"
+              >
+                <Icon name="Bell" className="mr-2" size={20} />
+                {isSubmitting ? 'Отправка...' : 'Уведомить меня'}
+              </Button>
+            </form>
+          </Card>
+
           <div className="flex flex-wrap gap-4 justify-center">
-            <Button size="lg" className="bg-primary hover:bg-primary/90 text-background font-semibold text-lg px-8 py-6">
-              <Icon name="Bell" className="mr-2" size={20} />
-              Уведомить о запуске
-            </Button>
             <Button size="lg" variant="outline" className="border-2 border-primary text-primary hover:bg-primary/10 font-semibold text-lg px-8 py-6">
               <Icon name="Play" className="mr-2" size={20} />
               Смотреть трейлер

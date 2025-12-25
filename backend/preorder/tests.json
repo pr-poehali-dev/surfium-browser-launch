@@ -1,0 +1,21 @@
+{
+  "tests": [
+    {
+      "name": "Get preorder count",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Register new preorder",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "email": "test123456@example.com"
+      },
+      "expectedStatus": 201,
+      "bodyMatcher": "partial"
+    }
+  ]
+}
